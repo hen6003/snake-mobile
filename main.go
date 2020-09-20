@@ -88,6 +88,7 @@ func run() {
 	imd := imdraw.New(nil)
 
 	makeSnake()
+	randPos()
 
 	go pos()
 
