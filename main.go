@@ -11,11 +11,11 @@ import (
 	"time"
 )
 
-var dirX bool
-var dirY bool
+var dirA bool
+var dirB bool
 
-var oldDirX bool
-var oldDirY bool
+var oldDirA bool
+var oldDirB bool
 
 var dead bool
 
@@ -83,35 +83,35 @@ func makeSnake() {
 }
 
 func setDirUp() {
-	if oldDirX == true && oldDirY == true {
+	if oldDirA == true && oldDirB == true {
 		return
 	}
-	dirX = false
-	dirY = true
+	dirA = false
+	dirB = true
 }
 
 func setDirDown() {
-	if oldDirX == false && oldDirY == true {
+	if oldDirA == false && oldDirB == true {
 		return
 	}
-	dirX = true
-	dirY = true
+	dirA = true
+	dirB = true
 }
 
 func setDirRight() {
-	if oldDirX == true && oldDirY == false {
+	if oldDirA == true && oldDirB == false {
 		return
 	}
-	dirX = false
-	dirY = false
+	dirA = false
+	dirB = false
 }
 
 func setDirLeft() {
-	if oldDirX == false && oldDirY == false {
+	if oldDirA == false && oldDirB == false {
 		return
 	}
-	dirX = true
-	dirY = false
+	dirA = true
+	dirB = false
 }
 
 func run() {
@@ -211,14 +211,14 @@ func pos() {
 	for true {
 		updatePos()
 
-		oldDirX = dirX
-		oldDirY = dirY
+		oldDirA = dirA
+		oldDirB = dirB
 
-		if dirX == true && dirY == true {
+		if dirA == true && dirB == true {
 			snake[0].y -= 45
-		} else if dirX == false && dirY == false {
+		} else if dirA == false && dirB == false {
 			snake[0].x += 45
-		} else if dirX == false && dirY == true {
+		} else if dirA == false && dirB == true {
 			snake[0].y += 45
 		} else {
 			snake[0].x -= 45
@@ -249,8 +249,8 @@ func pos() {
 			updatePos()
 			updatePos()
 
-			dirX = false
-			dirY = false
+			dirA = false
+			dirB = false
 
 			die = -2
 		}
