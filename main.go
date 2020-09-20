@@ -5,8 +5,8 @@ import (
 	"github.com/faiface/pixel/imdraw"
 	"github.com/faiface/pixel/pixelgl"
 	"golang.org/x/image/colornames"
+	"math/rand"
 
-	// "fmt"
 	"image/color"
 	"time"
 )
@@ -21,12 +21,13 @@ var b bool
 
 var dead bool
 
-type snakePiece struct {
+type block struct {
 	x int
 	y int
 }
 
-var snake = []*snakePiece{}
+var apple = new(block)
+var snake = []*block{}
 
 func drawPixel(imd *imdraw.IMDraw, posX int, posY int, color color.RGBA) {
 	imd.Color = color
@@ -40,6 +41,36 @@ func updatePos() {
 		snake[i].x = snake[i-1].x
 		snake[i].y = snake[i-1].y
 	}
+}
+
+func newBody() {
+	body := new(block)
+
+	body.x = -45
+	body.y = -45
+
+	snake = append(snake, body)
+}
+
+func randPos() {
+	rand.Seed(time.Now().UnixNano())
+
+	apple.x = rand.Intn(16) * 45
+	apple.y = rand.Intn(16) * 45
+}
+
+func makeSnake() {
+	snake = []*block{}
+
+	head := new(block)
+
+	head.x = 270
+	head.y = 360
+
+	snake = append(snake, head)
+
+	newBody()
+	newBody()
 }
 
 func run() {
@@ -56,17 +87,7 @@ func run() {
 
 	imd := imdraw.New(nil)
 
-	head := new(snakePiece)
-
-	head.x = 270
-	head.y = 360
-
-	body1 := new(snakePiece)
-	body2 := new(snakePiece)
-
-	snake = append(snake, head)
-	snake = append(snake, body1)
-	snake = append(snake, body2)
+	makeSnake()
 
 	go pos()
 
@@ -141,6 +162,8 @@ func run() {
 			drawPixel(imd, v.x, v.y, colornames.Darkcyan)
 		}
 
+		drawPixel(imd, apple.x, apple.y, colornames.Indianred)
+
 		imd.Draw(win)
 		win.Update()
 	}
@@ -178,8 +201,7 @@ func pos() {
 		if die > 1 {
 			dead = true
 
-			snake[0].x = 270
-			snake[0].y = 360
+			makeSnake()
 
 			updatePos()
 			updatePos()
@@ -188,6 +210,11 @@ func pos() {
 			b = false
 
 			die = -2
+		}
+
+		if snake[0].x == apple.x && snake[0].y == apple.y {
+			newBody()
+			randPos()
 		}
 
 		time.Sleep(1000000000)
