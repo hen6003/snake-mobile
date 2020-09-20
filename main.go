@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/imdraw"
 	"github.com/faiface/pixel/pixelgl"
@@ -194,8 +193,6 @@ func pos() {
 				}
 			}
 		}
-
-		fmt.Println(snake[0])
 
 		if snake[0].y >= 720 || snake[0].y < 0 || snake[0].x >= 720 || snake[0].x < 0 {
 			die++
