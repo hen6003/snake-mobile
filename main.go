@@ -11,11 +11,6 @@ import (
 	"time"
 )
 
-var snakePosX int = 270
-var snakePosY int = 360
-var snakePosSvX int
-var snakePosSvY int
-
 var a bool
 var b bool
 
@@ -53,10 +48,21 @@ func newBody() {
 }
 
 func randPos() {
-	rand.Seed(time.Now().UnixNano())
+	for same := true; same; {
+		rand.Seed(time.Now().UnixNano())
 
-	apple.x = rand.Intn(16) * 45
-	apple.y = rand.Intn(16) * 45
+		apple.x = rand.Intn(16) * 45
+		apple.y = rand.Intn(16) * 45
+
+		for _, v := range snake {
+			if v.x == apple.x || v.y == apple.y {
+				same = true
+				return
+			} else {
+				same = false
+			}
+		}
+	}
 }
 
 func makeSnake() {
@@ -88,11 +94,11 @@ func run() {
 	imd := imdraw.New(nil)
 
 	makeSnake()
-	randPos()
 
 	go pos()
 
 	updatePos()
+	randPos()
 
 	for !win.Closed() {
 		if dead {
