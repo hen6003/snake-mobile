@@ -6,15 +6,41 @@ import (
 	"github.com/faiface/pixel/pixelgl"
 	"golang.org/x/image/colornames"
 
-	"fmt"
+	// "fmt"
+	"image/color"
 	"time"
 )
 
-var posX int = 100
-var posY int = 100
+var snakePosX int = 270
+var snakePosY int = 360
+var snakePosSvX int
+var snakePosSvY int
 
 var a bool
 var b bool
+
+var dead bool
+
+type snakePiece struct {
+	x int
+	y int
+}
+
+var snake = []*snakePiece{}
+
+func drawPixel(imd *imdraw.IMDraw, posX int, posY int, color color.RGBA) {
+	imd.Color = color
+	imd.Push(pixel.V(float64(posX), float64(posY)))
+	imd.Push(pixel.V(float64(posX+45), float64(posY+45)))
+	imd.Rectangle(0)
+}
+
+func updatePos() {
+	for i := len(snake) - 1; i > 0; i-- {
+		snake[i].x = snake[i-1].x
+		snake[i].y = snake[i-1].y
+	}
+}
 
 func run() {
 	cfg := pixelgl.WindowConfig{
@@ -30,10 +56,29 @@ func run() {
 
 	imd := imdraw.New(nil)
 
+	head := new(snakePiece)
+
+	head.x = 270
+	head.y = 360
+
+	body1 := new(snakePiece)
+	body2 := new(snakePiece)
+
+	snake = append(snake, head)
+	snake = append(snake, body1)
+	snake = append(snake, body2)
+
 	go pos()
 
+	updatePos()
+
 	for !win.Closed() {
-		win.Clear(colornames.Darkgreen)
+		if dead {
+			win.Clear(colornames.Darkred)
+		} else {
+			win.Clear(colornames.Darkgreen)
+		}
+
 		imd.Clear()
 
 		if win.JustPressed(pixelgl.MouseButtonLeft) {
@@ -78,30 +123,73 @@ func run() {
 			}
 		}
 
-		imd.Color = pixel.RGB(0, 1, 1)
-		imd.Push(pixel.V(float64(posX), float64(posY)))
-		imd.Push(pixel.V(float64(posX+45), float64(posY+45)))
-		imd.Rectangle(0)
+		if win.JustPressed(pixelgl.KeyUp) {
+			a = false
+			b = true
+		} else if win.JustPressed(pixelgl.KeyDown) {
+			a = true
+			b = true
+		} else if win.JustPressed(pixelgl.KeyRight) {
+			a = false
+			b = false
+		} else if win.JustPressed(pixelgl.KeyLeft) {
+			a = true
+			b = false
+		}
+
+		for _, v := range snake {
+			drawPixel(imd, v.x, v.y, colornames.Darkcyan)
+		}
 
 		imd.Draw(win)
-
 		win.Update()
 	}
 }
 
+// pos stuff goes here
 func pos() {
+	var die int = -2
+
 	for true {
+		updatePos()
+
 		if a == true && b == true {
-			posY -= 45
+			snake[0].y -= 45
 		} else if a == false && b == false {
-			posX += 45
+			snake[0].x += 45
 		} else if a == false && b == true {
-			posY += 45
+			snake[0].y += 45
 		} else {
-			posX -= 45
+			snake[0].x -= 45
 		}
 
-		fmt.Printf("x: %d, y: %d, %d%d\n", posX, posY, a, b)
+		for i, v := range snake {
+			for s, z := range snake {
+				if z.x == v.x && z.y == v.y && i != s {
+					die++
+				}
+			}
+		}
+
+		if dead {
+			dead = false
+		}
+
+		if die > 1 {
+			dead = true
+
+			snake[0].x = 270
+			snake[0].y = 360
+
+			updatePos()
+			updatePos()
+
+			a = false
+			b = false
+
+			die = -2
+		}
+
 		time.Sleep(1000000000)
 	}
 }
