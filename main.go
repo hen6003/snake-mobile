@@ -11,8 +11,11 @@ import (
 	"time"
 )
 
-var a bool
-var b bool
+var dirX bool
+var dirY bool
+
+var oldDirX bool
+var oldDirY bool
 
 var dead bool
 
@@ -79,9 +82,41 @@ func makeSnake() {
 	newBody()
 }
 
+func setDirUp() {
+	if oldDirX == true && oldDirY == true {
+		return
+	}
+	dirX = false
+	dirY = true
+}
+
+func setDirDown() {
+	if oldDirX == false && oldDirY == true {
+		return
+	}
+	dirX = true
+	dirY = true
+}
+
+func setDirRight() {
+	if oldDirX == true && oldDirY == false {
+		return
+	}
+	dirX = false
+	dirY = false
+}
+
+func setDirLeft() {
+	if oldDirX == false && oldDirY == false {
+		return
+	}
+	dirX = true
+	dirY = false
+}
+
 func run() {
 	cfg := pixelgl.WindowConfig{
-		Title:  "Snake",
+		Title:  "Snake Mobile",
 		Bounds: pixel.R(0, 0, 720, 720),
 		VSync:  true,
 	}
@@ -115,58 +150,51 @@ func run() {
 			if mousePos.X < 360 {
 				if mousePos.Y < 360 {
 					if mousePos.X < mousePos.Y {
-						a = true
-						b = false
+						setDirLeft()
 					} else {
-						a = true
-						b = true
+						setDirDown()
 					}
 				} else {
 					if mousePos.X+mousePos.Y < 720 {
-						a = true
-						b = false
+						setDirLeft()
 					} else {
-						a = false
-						b = true
+						setDirUp()
 					}
 				}
 			} else {
 				if mousePos.Y < 360 {
 					if mousePos.X+mousePos.Y < 720 {
-						a = true
-						b = true
+						setDirDown()
 					} else {
-						a = false
-						b = false
+						setDirRight()
 					}
 				} else {
 					if mousePos.X < mousePos.Y {
-						a = false
-						b = true
+						setDirUp()
 					} else {
-						a = false
-						b = false
+						setDirRight()
 					}
 				}
 			}
 		}
 
 		if win.JustPressed(pixelgl.KeyUp) {
-			a = false
-			b = true
+			setDirUp()
 		} else if win.JustPressed(pixelgl.KeyDown) {
-			a = true
-			b = true
+			setDirDown()
 		} else if win.JustPressed(pixelgl.KeyRight) {
-			a = false
-			b = false
+			setDirRight()
 		} else if win.JustPressed(pixelgl.KeyLeft) {
-			a = true
-			b = false
+			setDirLeft()
 		}
 
-		for _, v := range snake {
-			drawPixel(imd, v.x, v.y, colornames.Darkcyan)
+		for i, v := range snake {
+			col := colornames.Darkcyan
+
+			col.G = col.G - uint8(i*2)
+			col.B = col.B - uint8(i*2)
+
+			drawPixel(imd, v.x, v.y, col)
 		}
 
 		drawPixel(imd, apple.x, apple.y, colornames.Indianred)
@@ -183,11 +211,14 @@ func pos() {
 	for true {
 		updatePos()
 
-		if a == true && b == true {
+		oldDirX = dirX
+		oldDirY = dirY
+
+		if dirX == true && dirY == true {
 			snake[0].y -= 45
-		} else if a == false && b == false {
+		} else if dirX == false && dirY == false {
 			snake[0].x += 45
-		} else if a == false && b == true {
+		} else if dirX == false && dirY == true {
 			snake[0].y += 45
 		} else {
 			snake[0].x -= 45
@@ -218,8 +249,8 @@ func pos() {
 			updatePos()
 			updatePos()
 
-			a = false
-			b = false
+			dirX = false
+			dirY = false
 
 			die = -2
 		}
