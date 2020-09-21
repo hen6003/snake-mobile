@@ -4,10 +4,13 @@ import (
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/imdraw"
 	"github.com/faiface/pixel/pixelgl"
+	"github.com/faiface/pixel/text"
+	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/colornames"
-	"math/rand"
 
+	"fmt"
 	"image/color"
+	"math/rand"
 	"time"
 )
 
@@ -126,6 +129,15 @@ func run() {
 		panic(err)
 	}
 
+	ttf, err := truetype.Parse(font)
+	if err != nil {
+		panic(err)
+	}
+	face := truetype.NewFace(ttf, &truetype.Options{
+		Size: 30,
+	})
+	txt := text.New(pixel.ZV, text.NewAtlas(face, text.ASCII))
+
 	imd := imdraw.New(nil)
 
 	makeSnake()
@@ -141,7 +153,6 @@ func run() {
 		} else {
 			win.Clear(colornames.Darkgreen)
 		}
-
 		imd.Clear()
 
 		if win.JustPressed(pixelgl.MouseButtonLeft) {
@@ -200,6 +211,11 @@ func run() {
 		drawPixel(imd, apple.x, apple.y, colornames.Indianred)
 
 		imd.Draw(win)
+
+		txt.Clear()
+		fmt.Fprintf(txt, "LEVEL: %d", len(snake)-3)
+		txt.DrawColorMask(win, pixel.IM.Moved(pixel.V(5, 695)), colornames.Darksalmon)
+
 		win.Update()
 	}
 }
@@ -260,7 +276,7 @@ func pos() {
 			randPos()
 		}
 
-		time.Sleep(1000000000)
+		time.Sleep(time.Duration(500000000 - (10000000 * len(snake))))
 	}
 }
 
