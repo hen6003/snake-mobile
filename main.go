@@ -21,6 +21,7 @@ var oldDirA bool
 var oldDirB bool
 
 var dead bool
+var pause bool
 
 type block struct {
 	x int
@@ -189,7 +190,9 @@ func run() {
 			}
 		}
 
-		if win.JustPressed(pixelgl.KeyUp) {
+		if win.JustPressed(pixelgl.KeySpace) {
+			pause = !pause
+		} else if win.JustPressed(pixelgl.KeyUp) {
 			setDirUp()
 		} else if win.JustPressed(pixelgl.KeyDown) {
 			setDirDown()
@@ -216,6 +219,12 @@ func run() {
 		fmt.Fprintf(txt, "LEVEL: %d", len(snake)-3)
 		txt.DrawColorMask(win, pixel.IM.Moved(pixel.V(5, 695)), colornames.Darksalmon)
 
+		if pause {
+			txt.Clear()
+			fmt.Fprint(txt, "PAUSED")
+			txt.DrawColorMask(win, pixel.IM.Moved(pixel.V(635, 695)), colornames.Crimson)
+		}
+
 		win.Update()
 	}
 }
@@ -225,6 +234,9 @@ func pos() {
 	var die int = -2
 
 	for true {
+		for pause {
+		}
+
 		updatePos()
 
 		oldDirA = dirA
