@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"image/color"
 	"math/rand"
+	"os"
 	"time"
 )
 
@@ -30,6 +31,7 @@ type block struct {
 
 var apple = new(block)
 var snake = []*block{}
+var win *pixelgl.Window
 
 func drawPixel(imd *imdraw.IMDraw, posX int, posY int, color color.RGBA) {
 	imd.Color = color
@@ -62,9 +64,9 @@ func randPos() {
 		apple.y = rand.Intn(16) * 45
 
 		for _, v := range snake {
-			if v.x == apple.x || v.y == apple.y {
+			if v.x == apple.x && v.y == apple.y {
 				same = true
-				return
+				break
 			} else {
 				same = false
 			}
@@ -137,17 +139,34 @@ func run() {
 	face := truetype.NewFace(ttf, &truetype.Options{
 		Size: 30,
 	})
+	faceBig := truetype.NewFace(ttf, &truetype.Options{
+		Size: 100,
+	})
+
 	txt := text.New(pixel.ZV, text.NewAtlas(face, text.ASCII))
+	txtBig := text.New(pixel.ZV, text.NewAtlas(faceBig, text.ASCII))
 
 	imd := imdraw.New(nil)
 
 	makeSnake()
-
-	go pos()
-
 	updatePos()
 	randPos()
 
+	win.Clear(colornames.Darkgreen)
+	fmt.Fprint(txtBig, "SPACE OR CLICK\n    TO PLAY")
+	txtBig.DrawColorMask(win, pixel.IM.Moved(pixel.V(60, 360)), colornames.Darksalmon)
+
+	for loop := true; loop; {
+		win.Update()
+
+		if win.Closed() {
+			os.Exit(0)
+		} else if win.Pressed(pixelgl.KeySpace) || win.Pressed(pixelgl.MouseButtonLeft) {
+			loop = false
+		}
+	}
+
+	go pos()
 	for !win.Closed() {
 		if dead {
 			win.Clear(colornames.Darkred)
@@ -200,6 +219,10 @@ func run() {
 			setDirRight()
 		} else if win.JustPressed(pixelgl.KeyLeft) {
 			setDirLeft()
+		}
+
+		if !win.Focused() {
+			pause = true
 		}
 
 		for i, v := range snake {
