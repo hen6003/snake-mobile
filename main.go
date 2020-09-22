@@ -166,6 +166,7 @@ func run() {
 		}
 	}
 
+	win.Update()
 	go pos()
 	for !win.Closed() {
 		if dead {
@@ -178,7 +179,11 @@ func run() {
 		if win.JustPressed(pixelgl.MouseButtonLeft) {
 			mousePos := win.MousePosition()
 
-			if mousePos.X < 360 {
+			if pause {
+				pause = false
+			} else if mousePos.X > 310 && mousePos.X < 410 && mousePos.Y > 310 && mousePos.Y < 410 {
+				pause = true
+			} else if mousePos.X < 360 {
 				if mousePos.Y < 360 {
 					if mousePos.X < mousePos.Y {
 						setDirLeft()
