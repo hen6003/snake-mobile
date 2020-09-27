@@ -1,325 +1,256 @@
+// Copyright 2020 The Ebiten Authors
+//
+// Modifyed for mobile by hen6003
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package main
 
 import (
-	"github.com/faiface/pixel"
-	"github.com/faiface/pixel/imdraw"
-	"github.com/faiface/pixel/pixelgl"
-	"github.com/faiface/pixel/text"
-	"github.com/golang/freetype/truetype"
-	"golang.org/x/image/colornames"
-
 	"fmt"
 	"image/color"
+	"log"
 	"math/rand"
-	"os"
 	"time"
+
+	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
-var dirA bool
-var dirB bool
+const (
+	screenWidth  = 720
+	screenHeight = 720
+	gridSize     = 10
+	xNumInScreen = screenWidth / gridSize
+	yNumInScreen = screenHeight / gridSize
+)
 
-var oldDirA bool
-var oldDirB bool
+const (
+	dirNone = iota
+	dirLeft
+	dirRight
+	dirDown
+	dirUp
+)
 
-var dead bool
-var pause bool
-
-type block struct {
-	x int
-	y int
+type Position struct {
+	X int
+	Y int
 }
 
-var apple = new(block)
-var snake = []*block{}
-var win *pixelgl.Window
-
-func drawPixel(imd *imdraw.IMDraw, posX int, posY int, color color.RGBA) {
-	imd.Color = color
-	imd.Push(pixel.V(float64(posX), float64(posY)))
-	imd.Push(pixel.V(float64(posX+45), float64(posY+45)))
-	imd.Rectangle(0)
+type Game struct {
+	moveDirection int
+	snakeBody     []Position
+	apple         Position
+	timer         int
+	moveTime      int
+	score         int
+	bestScore     int
+	level         int
 }
 
-func updatePos() {
-	for i := len(snake) - 1; i > 0; i-- {
-		snake[i].x = snake[i-1].x
-		snake[i].y = snake[i-1].y
-	}
+func init() {
+	rand.Seed(time.Now().UnixNano())
 }
 
-func newBody() {
-	body := new(block)
-
-	body.x = -45
-	body.y = -45
-
-	snake = append(snake, body)
+func (g *Game) collidesWithApple() bool {
+	return g.snakeBody[0].X == g.apple.X &&
+		g.snakeBody[0].Y == g.apple.Y
 }
 
-func randPos() {
-	for same := true; same; {
-		rand.Seed(time.Now().UnixNano())
-
-		apple.x = rand.Intn(16) * 45
-		apple.y = rand.Intn(16) * 45
-
-		for _, v := range snake {
-			if v.x == apple.x && v.y == apple.y {
-				same = true
-				break
-			} else {
-				same = false
-			}
+func (g *Game) collidesWithSelf() bool {
+	for _, v := range g.snakeBody[1:] {
+		if g.snakeBody[0].X == v.X &&
+			g.snakeBody[0].Y == v.Y {
+			return true
 		}
 	}
+	return false
 }
 
-func makeSnake() {
-	snake = []*block{}
-
-	head := new(block)
-
-	head.x = 270
-	head.y = 360
-
-	snake = append(snake, head)
-
-	newBody()
-	newBody()
+func (g *Game) collidesWithWall() bool {
+	return g.snakeBody[0].X < 0 ||
+		g.snakeBody[0].Y < 0 ||
+		g.snakeBody[0].X >= xNumInScreen ||
+		g.snakeBody[0].Y >= yNumInScreen
 }
 
-func setDirUp() {
-	if oldDirA == true && oldDirB == true {
-		return
-	}
-	dirA = false
-	dirB = true
+func (g *Game) needsToMoveSnake() bool {
+	return g.timer%g.moveTime == 0
 }
 
-func setDirDown() {
-	if oldDirA == false && oldDirB == true {
-		return
-	}
-	dirA = true
-	dirB = true
+func (g *Game) reset() {
+	g.apple.X = 3 * gridSize
+	g.apple.Y = 3 * gridSize
+	g.moveTime = 4
+	g.snakeBody = g.snakeBody[:1]
+	g.snakeBody[0].X = xNumInScreen / 2
+	g.snakeBody[0].Y = yNumInScreen / 2
+	g.score = 0
+	g.level = 1
+	g.moveDirection = dirNone
 }
 
-func setDirRight() {
-	if oldDirA == true && oldDirB == false {
-		return
-	}
-	dirA = false
-	dirB = false
-}
-
-func setDirLeft() {
-	if oldDirA == false && oldDirB == false {
-		return
-	}
-	dirA = true
-	dirB = false
-}
-
-func run() {
-	cfg := pixelgl.WindowConfig{
-		Title:  "Snake Mobile",
-		Bounds: pixel.R(0, 0, 720, 720),
-		VSync:  true,
-	}
-
-	win, err := pixelgl.NewWindow(cfg)
-	if err != nil {
-		panic(err)
-	}
-
-	ttf, err := truetype.Parse(font)
-	if err != nil {
-		panic(err)
-	}
-	face := truetype.NewFace(ttf, &truetype.Options{
-		Size: 30,
-	})
-	faceBig := truetype.NewFace(ttf, &truetype.Options{
-		Size: 100,
-	})
-
-	txt := text.New(pixel.ZV, text.NewAtlas(face, text.ASCII))
-	txtBig := text.New(pixel.ZV, text.NewAtlas(faceBig, text.ASCII))
-
-	imd := imdraw.New(nil)
-
-	makeSnake()
-	updatePos()
-	randPos()
-
-	win.Clear(colornames.Darkgreen)
-	fmt.Fprint(txtBig, "SPACE OR CLICK\n    TO PLAY")
-	txtBig.DrawColorMask(win, pixel.IM.Moved(pixel.V(60, 360)), colornames.Darksalmon)
-
-	for loop := true; loop; {
-		win.Update()
-
-		if win.Closed() {
-			os.Exit(0)
-		} else if win.Pressed(pixelgl.KeySpace) || win.Pressed(pixelgl.MouseButtonLeft) {
-			loop = false
+func (g *Game) Update(screen *ebiten.Image) error {
+	if inpututil.IsKeyJustPressed(ebiten.KeyLeft) || inpututil.IsKeyJustPressed(ebiten.KeyA) {
+		if g.moveDirection != dirRight {
+			g.moveDirection = dirLeft
 		}
-	}
-
-	win.Update()
-	go pos()
-	for !win.Closed() {
-		if dead {
-			win.Clear(colornames.Darkred)
-		} else {
-			win.Clear(colornames.Darkgreen)
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyRight) || inpututil.IsKeyJustPressed(ebiten.KeyD) {
+		if g.moveDirection != dirLeft {
+			g.moveDirection = dirRight
 		}
-		imd.Clear()
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyDown) || inpututil.IsKeyJustPressed(ebiten.KeyS) {
+		if g.moveDirection != dirUp {
+			g.moveDirection = dirDown
+		}
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyUp) || inpututil.IsKeyJustPressed(ebiten.KeyW) {
+		if g.moveDirection != dirDown {
+			g.moveDirection = dirUp
+		}
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+		g.reset()
+	} else if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		mousePosX, mousePosY := ebiten.CursorPosition()
 
-		if win.JustPressed(pixelgl.MouseButtonLeft) {
-			mousePos := win.MousePosition()
-
-			if pause {
-				pause = false
-			} else if mousePos.X > 310 && mousePos.X < 410 && mousePos.Y > 310 && mousePos.Y < 410 {
-				pause = true
-			} else if mousePos.X < 360 {
-				if mousePos.Y < 360 {
-					if mousePos.X < mousePos.Y {
-						setDirLeft()
-					} else {
-						setDirDown()
+		if mousePosX < 360 {
+			if mousePosY < 360 {
+				if mousePosX < mousePosY {
+					if g.moveDirection != dirRight {
+						g.moveDirection = dirLeft
 					}
 				} else {
-					if mousePos.X+mousePos.Y < 720 {
-						setDirLeft()
-					} else {
-						setDirUp()
+					if g.moveDirection != dirDown {
+						g.moveDirection = dirUp
 					}
 				}
 			} else {
-				if mousePos.Y < 360 {
-					if mousePos.X+mousePos.Y < 720 {
-						setDirDown()
-					} else {
-						setDirRight()
+				if mousePosX+mousePosY < 720 {
+					if g.moveDirection != dirRight {
+						g.moveDirection = dirLeft
 					}
 				} else {
-					if mousePos.X < mousePos.Y {
-						setDirUp()
-					} else {
-						setDirRight()
+					if g.moveDirection != dirUp {
+						g.moveDirection = dirDown
+					}
+				}
+			}
+		} else {
+			if mousePosY < 360 {
+				if mousePosX+mousePosY < 720 {
+					if g.moveDirection != dirDown {
+						g.moveDirection = dirUp
+					}
+				} else {
+					if g.moveDirection != dirLeft {
+						g.moveDirection = dirRight
+					}
+				}
+			} else {
+				if mousePosX < mousePosY {
+					if g.moveDirection != dirUp {
+						g.moveDirection = dirDown
+					}
+				} else {
+					if g.moveDirection != dirLeft {
+						g.moveDirection = dirRight
 					}
 				}
 			}
 		}
+	}
 
-		if win.JustPressed(pixelgl.KeySpace) {
-			pause = !pause
-		} else if win.JustPressed(pixelgl.KeyUp) {
-			setDirUp()
-		} else if win.JustPressed(pixelgl.KeyDown) {
-			setDirDown()
-		} else if win.JustPressed(pixelgl.KeyRight) {
-			setDirRight()
-		} else if win.JustPressed(pixelgl.KeyLeft) {
-			setDirLeft()
+	if g.needsToMoveSnake() {
+		if g.collidesWithWall() || g.collidesWithSelf() {
+			g.reset()
 		}
 
-		if !win.Focused() {
-			pause = true
+		if g.collidesWithApple() {
+			g.apple.X = rand.Intn(xNumInScreen - 1)
+			g.apple.Y = rand.Intn(yNumInScreen - 1)
+			g.snakeBody = append(g.snakeBody, Position{
+				X: g.snakeBody[len(g.snakeBody)-1].X,
+				Y: g.snakeBody[len(g.snakeBody)-1].Y,
+			})
+			if len(g.snakeBody) > 10 && len(g.snakeBody) < 20 {
+				g.level = 2
+				g.moveTime = 3
+			} else if len(g.snakeBody) > 20 {
+				g.level = 3
+				g.moveTime = 2
+			} else {
+				g.level = 1
+			}
+			g.score++
+			if g.bestScore < g.score {
+				g.bestScore = g.score
+			}
 		}
 
-		for i, v := range snake {
-			col := colornames.Darkcyan
-
-			col.G = col.G - uint8(i*2)
-			col.B = col.B - uint8(i*2)
-
-			drawPixel(imd, v.x, v.y, col)
+		for i := int64(len(g.snakeBody)) - 1; i > 0; i-- {
+			g.snakeBody[i].X = g.snakeBody[i-1].X
+			g.snakeBody[i].Y = g.snakeBody[i-1].Y
 		}
-
-		drawPixel(imd, apple.x, apple.y, colornames.Indianred)
-
-		imd.Draw(win)
-
-		txt.Clear()
-		fmt.Fprintf(txt, "LEVEL: %d", len(snake)-3)
-		txt.DrawColorMask(win, pixel.IM.Moved(pixel.V(5, 695)), colornames.Darksalmon)
-
-		if pause {
-			txt.Clear()
-			fmt.Fprint(txt, "PAUSED")
-			txt.DrawColorMask(win, pixel.IM.Moved(pixel.V(635, 695)), colornames.Crimson)
+		switch g.moveDirection {
+		case dirLeft:
+			g.snakeBody[0].X--
+		case dirRight:
+			g.snakeBody[0].X++
+		case dirDown:
+			g.snakeBody[0].Y++
+		case dirUp:
+			g.snakeBody[0].Y--
 		}
+	}
 
-		win.Update()
+	g.timer++
+
+	return nil
+}
+
+func (g *Game) Draw(screen *ebiten.Image) {
+	for _, v := range g.snakeBody {
+		ebitenutil.DrawRect(screen, float64(v.X*gridSize), float64(v.Y*gridSize), gridSize, gridSize, color.RGBA{0x80, 0xa0, 0xc0, 0xff})
+	}
+	ebitenutil.DrawRect(screen, float64(g.apple.X*gridSize), float64(g.apple.Y*gridSize), gridSize, gridSize, color.RGBA{0xFF, 0x00, 0x00, 0xff})
+
+	if g.moveDirection == dirNone {
+		ebitenutil.DebugPrint(screen, fmt.Sprintf("Press up/down/left/right to start"))
+	} else {
+		ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f Level: %d Score: %d Best Score: %d", ebiten.CurrentFPS(), g.level, g.score, g.bestScore))
 	}
 }
 
-// pos stuff goes here
-func pos() {
-	var die int = -2
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
+}
 
-	for true {
-		for pause {
-		}
-
-		updatePos()
-
-		oldDirA = dirA
-		oldDirB = dirB
-
-		if dirA == true && dirB == true {
-			snake[0].y -= 45
-		} else if dirA == false && dirB == false {
-			snake[0].x += 45
-		} else if dirA == false && dirB == true {
-			snake[0].y += 45
-		} else {
-			snake[0].x -= 45
-		}
-
-		for i, v := range snake {
-			for s, z := range snake {
-				if z.x == v.x && z.y == v.y && i != s {
-					die++
-				}
-			}
-		}
-
-		if snake[0].y >= 720 || snake[0].y < 0 || snake[0].x >= 720 || snake[0].x < 0 {
-			die++
-			die++
-		}
-
-		if dead {
-			dead = false
-		}
-
-		if die > 1 {
-			dead = true
-
-			makeSnake()
-
-			updatePos()
-			updatePos()
-
-			dirA = false
-			dirB = false
-
-			die = -2
-		}
-
-		if snake[0].x == apple.x && snake[0].y == apple.y {
-			newBody()
-			randPos()
-		}
-
-		time.Sleep(time.Duration(500000000 - (10000000 * len(snake))))
+func newGame() *Game {
+	g := &Game{
+		apple:     Position{X: 3 * gridSize, Y: 3 * gridSize},
+		moveTime:  4,
+		snakeBody: make([]Position, 1),
 	}
+	g.snakeBody[0].X = xNumInScreen / 2
+	g.snakeBody[0].Y = yNumInScreen / 2
+	return g
 }
 
 func main() {
-	pixelgl.Run(run)
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowTitle("Snake")
+	if err := ebiten.RunGame(newGame()); err != nil {
+		log.Fatal(err)
+	}
 }
