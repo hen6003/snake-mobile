@@ -31,7 +31,7 @@ import (
 const (
 	screenWidth  = 360
 	screenHeight = 630
-	gridSize     = 10
+	gridSize     = 20
 	xNumInScreen = screenWidth / gridSize
 	yNumInScreen = screenHeight / gridSize
 )
@@ -91,9 +91,9 @@ func (g *Game) needsToMoveSnake() bool {
 }
 
 func (g *Game) reset() {
-	g.apple.X = 3 * gridSize
-	g.apple.Y = 3 * gridSize
-	g.moveTime = 4
+	g.apple.X = rand.Intn(xNumInScreen - 1)
+	g.apple.Y = rand.Intn(yNumInScreen - 1)
+	g.moveTime = 7
 	g.snakeBody = g.snakeBody[:1]
 	g.snakeBody[0].X = xNumInScreen / 2
 	g.snakeBody[0].Y = yNumInScreen / 2
@@ -238,8 +238,8 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func newGame() *Game {
 	g := &Game{
-		apple:     Position{X: 3 * gridSize, Y: 3 * gridSize},
-		moveTime:  4,
+		apple:     Position{X: rand.Intn(xNumInScreen - 1), Y: rand.Intn(yNumInScreen - 1)},
+		moveTime:  7,
 		snakeBody: make([]Position, 1),
 	}
 	g.snakeBody[0].X = xNumInScreen / 2
