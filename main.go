@@ -30,7 +30,7 @@ import (
 
 const (
 	screenWidth  = 360
-	screenHeight = 640
+	screenHeight = 630
 	gridSize     = 10
 	xNumInScreen = screenWidth / gridSize
 	yNumInScreen = screenHeight / gridSize
@@ -124,9 +124,9 @@ func (g *Game) Update(screen *ebiten.Image) error {
 	} else if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		mousePosX, mousePosY := ebiten.CursorPosition()
 
-		if mousePosX < 360 {
-			if mousePosY < 360 {
-				if mousePosX < mousePosY {
+		if mousePosX < screenWidth/2 {
+			if mousePosY < screenWidth/2 {
+				if mousePosX < mousePosY/6*4 {
 					if g.moveDirection != dirRight {
 						g.moveDirection = dirLeft
 					}
@@ -136,7 +136,7 @@ func (g *Game) Update(screen *ebiten.Image) error {
 					}
 				}
 			} else {
-				if mousePosX+mousePosY < 720 {
+				if mousePosX+mousePosY < screenHeight {
 					if g.moveDirection != dirRight {
 						g.moveDirection = dirLeft
 					}
@@ -147,8 +147,8 @@ func (g *Game) Update(screen *ebiten.Image) error {
 				}
 			}
 		} else {
-			if mousePosY < 360 {
-				if mousePosX+mousePosY < 720 {
+			if mousePosY < screenHeight/2 {
+				if mousePosX+mousePosY < screenHeight/2 {
 					if g.moveDirection != dirDown {
 						g.moveDirection = dirUp
 					}
@@ -158,7 +158,7 @@ func (g *Game) Update(screen *ebiten.Image) error {
 					}
 				}
 			} else {
-				if mousePosX < mousePosY {
+				if mousePosX < mousePosY/6*4 {
 					if g.moveDirection != dirUp {
 						g.moveDirection = dirDown
 					}
