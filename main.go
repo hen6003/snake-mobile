@@ -185,10 +185,10 @@ func (g *Game) Update(screen *ebiten.Image) error {
 			})
 			if len(g.snakeBody) > 10 && len(g.snakeBody) < 20 {
 				g.level = 2
-				g.moveTime = 3
+				g.moveTime = 6
 			} else if len(g.snakeBody) > 20 {
 				g.level = 3
-				g.moveTime = 2
+				g.moveTime = 5
 			} else {
 				g.level = 1
 			}
